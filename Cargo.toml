@@ -3,4 +3,19 @@ name = "sniproxy"
 version = "0.1.0"
 edition = "2021"
 
+
 [dependencies]
+quinn = { path = "../quinn/quinn", default-features = false, features = [
+    "runtime-tokio",
+    "rustls",
+] }
+quinn-proto = { path = "../quinn/quinn-proto" }
+tokio = { version = "1.42.0", features = ["full"] }
+rustls = { version = "0.23.20", default-features = true }
+rcgen = { version = "0.13.2", features = ["x509-parser", "crypto"] }
+time = "0.3.37"
+
+
+[[bin]]
+name = "generate_test_certificate"
+path = "src/bin/generate_ca.rs"
