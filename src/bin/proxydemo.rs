@@ -13,22 +13,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
     let cert_vec = std::fs::read("sniproxy_server_cert.der")?;
     let certs = vec![CertificateDer::from(cert_vec)];
 
-    let mut server_crypto = rustls::ServerConfig::builder()
+    // todo!("in the second stage, sni certificate is not required");
+    let mut proxy_crypto = rustls::ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(certs, key)?;
-    server_crypto.alpn_protocols = vec![b"hq-29".to_vec()];
+    proxy_crypto.alpn_protocols = vec![b"hq-29".to_vec()];
 
-    let mut server_config =
-        quinn::ServerConfig::with_crypto(Arc::new(QuicServerConfig::try_from(server_crypto)?));
-    let transport_config = Arc::get_mut(&mut server_config.transport).unwrap();
+    let mut proxy_config =
+        quinn::ServerConfig::with_crypto(Arc::new(QuicServerConfig::try_from(proxy_crypto)?));
+    let transport_config = Arc::get_mut(&mut proxy_config.transport).unwrap();
     transport_config.max_concurrent_uni_streams(0_u8.into());
 
-    // hardcode the server address for test
-    let endpoint = quinn::Endpoint::server(server_config, "127.0.0.1:4433".parse()?)
+    todo!("proxy endpoint is not implemented yet");
+    let endpoint = quinn::Endpoint::proxy(proxy_config, "127.0.0.1:1080".parse()?)
         .expect("failed to create server endpoint");
     println!("listening on {}", endpoint.local_addr()?);
 
-    while let Some(conn) = endpoint.accept().await {
+    todo!("proxy_accept is not implemented yet");
+    while let Some(conn) = endpoint.proxy_accept().await {
         let fut = handle_connection(conn);
         tokio::spawn(async move {
             if let Err(e) = fut.await {
@@ -44,28 +46,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
 #[allow(unreachable_code)]
 async fn handle_connection(conn: quinn::Incoming) -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
     let connection = conn.await?;
-    match connection.accept_bi().await {
-        Err(quinn::ConnectionError::ApplicationClosed { .. }) => {
-            println!("connection closed");
-            return Ok(());
-        }
-        Err(_e) => {
-            println!("connection failed: {reason}", reason = _e.to_string());
-            return Ok(());
-        }
-        Ok((send, recv)) => {
-
-            let (mut send, mut recv) = (send, recv);
-            let buf = recv.read_to_end(usize::MAX).await?;
-            println!("Received: {}", String::from_utf8_lossy(&buf));
-
-            send.write_all(b"Hello, client!").await?;
-            send.finish().expect("cannot finish server send");
-
-            connection.closed().await;
-            return Ok(());
-        }
-    };
-    
+    todo!("connection peek sni is not implemented yet");
+    let sni = connection.peek_sni();
+    todo!("connection bridge_to sni is not implemented yet");
+    connection.bridge_to(sni).await?;
     Ok(())
 }
